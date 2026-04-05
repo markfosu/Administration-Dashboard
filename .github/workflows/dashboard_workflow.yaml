@@ -44,6 +44,9 @@ jobs:
       - name: Build Docker image
         run: docker build -t dashboard:v1 .
 
+      - name: List Docker images
+        run: docker images
+
       - name: Trivy scan
         uses: aquasecurity/trivy-action@v0.35.0
         with:
@@ -52,6 +55,7 @@ jobs:
           exit-code: 1
           ignore-unfixed: true
           severity: HIGH,CRITICAL
+          scanners: vuln
 
   deploy:
     needs: test-and-scan
