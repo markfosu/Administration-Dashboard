@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "npx jest --runInBand",
+    "test": "node ./node_modules/jest/bin/jest.js --runInBand",
     "lint": "eslint .",
     "build": "echo \"No build step required for this app\""
   },
