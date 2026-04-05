@@ -42,7 +42,7 @@ jobs:
           args: --severity-threshold=high
 
       - name: Build Docker image
-        run: docker build -t dashboard-app:latest .
+        run: docker build -t dashboard:v1 .
 
       - name: Trivy scan
         uses: aquasecurity/trivy-action@v0.35.0
