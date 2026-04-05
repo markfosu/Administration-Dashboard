@@ -83,16 +83,63 @@ jobs:
             --exclude 'node_modules' \
             ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/dashboard-app
 
+      - name: Write nginx config
+        run: |
+          cat > /tmp/dashboard-app.nginx << 'NGINXCONF'
+          server {
+              listen 80;
+              server_name _;
+
+              location / {
+                  proxy_pass http://127.0.0.1:3000;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+          }
+          NGINXCONF
+          scp /tmp/dashboard-app.nginx ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/tmp/dashboard-app.nginx
+
       - name: Deploy app on EC2
         run: |
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
-            cd /home/${{ secrets.EC2_USER }}/dashboard-app
+
+            APP_DIR="/home/${{ secrets.EC2_USER }}/dashboard-app"
+
+            sudo apt update
+
+            if ! command -v node >/dev/null 2>&1; then
+              curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+              sudo apt install -y nodejs
+            fi
+
+            if ! command -v nginx >/dev/null 2>&1; then
+              sudo apt install -y nginx
+            fi
+
+            if ! command -v pm2 >/dev/null 2>&1; then
+              sudo npm install -g pm2
+            fi
+
+            cd "$APP_DIR"
             npm install --omit=dev
+
             pm2 delete dashboard-app || true
             pm2 start server.js --name dashboard-app
             pm2 save
-          EOF
 
+            sudo mv /tmp/dashboard-app.nginx /etc/nginx/sites-available/dashboard-app
+            sudo ln -sf /etc/nginx/sites-available/dashboard-app /etc/nginx/sites-enabled/dashboard-app
+            sudo rm -f /etc/nginx/sites-enabled/default
+            sudo nginx -t
+            sudo systemctl restart nginx
+            sudo systemctl enable nginx
+
+            pm2 startup systemd -u $USER --hp $HOME >/dev/null 2>&1 || true
+            pm2 save
+          EOF
 
 # this workflow will run on every push and pull request to the main branch. It will run tests, perform a SonarQube scan, a Snyk scan, build a Docker image, and perform a Trivy scan. If all checks pass and it's a push to the main branch, it will deploy the app to an EC2 instance using SSH.
