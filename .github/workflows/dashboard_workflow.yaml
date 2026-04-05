@@ -42,7 +42,7 @@ jobs:
           args: --severity-threshold=high
 
       - name: Build Docker image
-        run: docker build -t dashboard:v1 .
+        run: docker build -t dashboard-app:v1 .
 
       - name: List Docker images
         run: docker images
