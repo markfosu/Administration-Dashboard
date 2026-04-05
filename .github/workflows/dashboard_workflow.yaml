@@ -89,3 +89,6 @@ jobs:
             pm2 start server.js --name dashboard-app
             pm2 save
           EOF
+
+
+# this workflow will run on every push and pull request to the main branch. It will run tests, perform a SonarQube scan, a Snyk scan, build a Docker image, and perform a Trivy scan. If all checks pass and it's a push to the main branch, it will deploy the app to an EC2 instance using SSH.
